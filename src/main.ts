@@ -1,26 +1,32 @@
-import { IGDCSP } from "./igd-schedule/igd-csp.ts";
+import { IGDCSP, JagaV } from "./igd-schedule/igd-csp.ts";
+import { initBoard } from "./lib/utils.ts";
 
 const doctors: string[] = [
   /* 0*/ "dr. Desy Irviana Harahap",
   /* 1*/ "dr. Rahmawati",
   /* 2*/ "dr Dyas Alif  Fitriana",
-  /* 3*/ "dr Brianka Yudha Nurpradika",
-  /* 4*/ "dr Helviansyah El Farizqi",
-  /* 5*/ "dr Fauqi Amalia",
-  /* 6*/ "dr. Muhammad Almy Firasghani",
-  /* 7*/ "dr. Winda Cornelia Harini",
-  /* 8*/ "dr. Wijanarko Permadi",
-  /* 9*/ "dr. Zubaity Ardha",
-  /*10*/ "dr. Dasarina Rizki Amalia",
-  /*11*/ "dr. Fahmi Mohammad Bachtiar",
-  /*12*/ "dr. Maharani Tontowi",
-  /*13*/ "dr. Mergerizka Amiko Kapindo",
-  /*14*/ "dr. Amalia Citra Octavia",
+  // "dr Brianka Yudha Nurpradika",
+  /* 3*/ "dr Helviansyah El Farizqi",
+  /* 4*/ "dr Fauqi Amalia",
+  /* 5*/ "dr. Muhammad Almy Firasghani",
+  /* 6*/ "dr. Winda Cornelia Harini",
+  /* 7*/ "dr. Wijanarko Permadi",
+  /* 8*/ "dr. Zubaity Ardha",
+  /* 9*/ "dr. Dasarina Rizki Amalia",
+  /*10*/ "dr. Fahmi Mohammad Bachtiar",
+  /*11*/ "dr. Maharani Tontowi",
+  /*12*/ "dr. Mergerizka Amiko Kapindo",
+  /*13*/ "dr. Amalia Citra Octavia",
 ];
+
+const fV: (JagaV | null)[][] = initBoard(doctors.length, 30);
+fV[4] = ["L", "P", "M", "M", "L", "L", "L", "P", "S", "S", "M", "M", "L", "L", "P", "P", "S", "M", "M", "L", "L", "P", "P", "S", "M", "M", "L", "L", "L", "L"];
 
 const csp = new IGDCSP({
   days: 30, // Juni
   doctorCount: doctors.length,
+  weekOn1: 0, // Minggu
+  fixedValues: fV,
 });
 
 await csp.run();
