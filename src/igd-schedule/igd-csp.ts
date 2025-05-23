@@ -24,10 +24,12 @@ export type IGDV = (typeof igdVs)[number];
 
 const mapToHour = (
   { arr, c, r, csp }: RuleCtx<JagaV, IGDCSP>,
-  v: IGDV
+  v: IGDV | null
 ): number => {
   // const week = (csp.igd.weekOn1 + c) % 7;
   switch (v) {
+    case null:
+      return 0;
     case "P":
       return 7;
     case "S":
@@ -57,11 +59,43 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
   ),
   logFailedRule(
     false,
+    () => `M cannot be 3 in a row.`,
+    ({ arr, c, r, v }) => {
+      if (v !== "M") {
+        return { valid: true };
+      }
+      const inARow = 3;
+      if (c < inARow - 1) {
+        return { valid: true };
+      }
+      return {
+        valid: arr[r].slice(c - inARow + 1, c).some((vc) => vc !== v),
+      };
+    }
+  ),
+  logFailedRule(
+    false,
+    () => `P & S cannot be 3 in a row.`,
+    ({ arr, c, r, v }) => {
+      if (v !== "P" && v !== "S") {
+        return { valid: true };
+      }
+      const inARow = 3;
+      if (c < inARow - 1) {
+        return { valid: true };
+      }
+      return {
+        valid: arr[r].slice(c - inARow + 1, c).some((vc) => vc !== v),
+      };
+    }
+  ),
+  logFailedRule(
+    false,
     () => `M has to be 3 or smaller so far.`,
     ({ arr, c, colL, r, rowL, v, csp }) => {
       const expectedTotal = 3;
       if (r >= expectedTotal - 1) {
-        const totalM = ranged(r + 1)
+        const totalM = ranged(rowL)
           .map((i) => arr[i][c])
           .filter((av) => av === "M").length;
         return { valid: totalM <= expectedTotal, jump: [r - 1, c] };
@@ -75,10 +109,24 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
     ({ arr, c, colL, r, rowL, v, csp }) => {
       const expectedTotal = 3;
       if (r === rowL - 1) {
-        const totalM = ranged(r + 1)
+        const totalM = ranged(rowL)
           .map((i) => arr[i][c])
           .filter((av) => av === "M").length;
         return { valid: totalM === expectedTotal, jump: [r - 1, c] };
+      }
+      return { valid: true };
+    }
+  ),
+  logFailedRule(
+    false,
+    () => `P & S has to be 4 or smaller so far.`,
+    ({ arr, c, colL, r, rowL, v, csp }) => {
+      const expectedTotal = 4;
+      if (r >= expectedTotal - 1) {
+        const totalM = ranged(rowL)
+          .map((i) => arr[i][c])
+          .filter((av) => av === "P" || av === "S").length;
+        return { valid: totalM <= expectedTotal, jump: [r - 1, c] };
       }
       return { valid: true };
     }
@@ -89,7 +137,7 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
     ({ arr, c, colL, r, rowL, v, csp }) => {
       const expectedTotal = 3;
       if (r === rowL - 1) {
-        const totalM = ranged(r + 1)
+        const totalM = ranged(rowL)
           .map((i) => arr[i][c])
           .filter((av) => av === "P" || av === "S").length;
         return { valid: totalM >= expectedTotal, jump: [r - 1, c] };
@@ -104,7 +152,7 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
       const MIN_HOURS = 162.5;
       const MAX_HOURS = 165.5;
       const { arr, c, r, v } = a;
-      const totalHours = ranged(c + 1)
+      const totalHours = ranged(a.colL)
         .map((i) => arr[r][i])
         .reduce((prev, curr) => prev + mapToHour(a, curr!), 0);
       if (c === a.colL - 1 && totalHours < MIN_HOURS) {

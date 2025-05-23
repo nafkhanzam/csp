@@ -138,7 +138,6 @@ export abstract class CSP<V extends string = string> {
     const curri = this.arr[r][c];
     const nexti = curri == null ? 0 : curri + 1;
     if (nexti === valueLength) {
-      this.updateArr(r, c, null);
       return "backward";
     }
     this.updateArr(r, c, nexti);
@@ -191,11 +190,18 @@ export abstract class CSP<V extends string = string> {
 
   backward() {
     while (true) {
+      {
+        const [r, c] = this.getRC();
+        const fV = this.a.fixedValues?.[r][c] ?? null;
+        if (fV === null) {
+          this.updateArr(r, c, null);
+        }
+      }
       --this.state.pointer;
-      const [r, c] = this.getRC();
       if (this.state.pointer === -1) {
         break;
       }
+      const [r, c] = this.getRC();
       const fV = this.a.fixedValues?.[r][c] ?? null;
       if (fV === null) {
         break;
