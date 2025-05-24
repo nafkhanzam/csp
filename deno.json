@@ -2,7 +2,8 @@
   "imports": {
     "@david/console-static-text": "jsr:@david/console-static-text@^0.3.0",
     "@korkje/range": "jsr:@korkje/range@^0.2.2",
-    "@std/async": "jsr:@std/async@^1.0.13"
+    "@std/async": "jsr:@std/async@^1.0.13",
+    "@std/random": "jsr:@std/random@^0.1.0"
   },
   "compilerOptions": {
     "checkJs": true,

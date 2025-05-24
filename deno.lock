@@ -6,7 +6,8 @@
     "jsr:@korkje/range@*": "0.2.2",
     "jsr:@korkje/range@~0.2.2": "0.2.2",
     "jsr:@std/async@*": "1.0.13",
-    "jsr:@std/async@^1.0.13": "1.0.13"
+    "jsr:@std/async@^1.0.13": "1.0.13",
+    "jsr:@std/random@0.1": "0.1.0"
   },
   "jsr": {
     "@david/console-static-text@0.3.0": {
@@ -17,13 +18,17 @@
     },
     "@std/async@1.0.13": {
       "integrity": "1d76ca5d324aef249908f7f7fe0d39aaf53198e5420604a59ab5c035adc97c96"
+    },
+    "@std/random@0.1.0": {
+      "integrity": "70a006be0ffb77d036bab54aa8ae6bd0119ba77ace0f2f56f63273d4262a5667"
     }
   },
   "workspace": {
     "dependencies": [
       "jsr:@david/console-static-text@0.3",
       "jsr:@korkje/range@~0.2.2",
-      "jsr:@std/async@^1.0.13"
+      "jsr:@std/async@^1.0.13",
+      "jsr:@std/random@0.1"
     ]
   }
 }

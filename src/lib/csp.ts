@@ -1,6 +1,8 @@
+import {randomIntegerBetween, sample} from "@std/random";
 import {staticText} from "@david/console-static-text";
 import {delay} from "@std/async/delay";
 import {IF, initBoard, IS_DEBUG, printTimeDifference, ranged} from "./utils.ts";
+import range from "@korkje/range";
 
 export type RuleCtx<V extends string, TCSP extends CSP<V>> = {
   arr: (V | null)[][];
@@ -10,6 +12,7 @@ export type RuleCtx<V extends string, TCSP extends CSP<V>> = {
   colL: number;
   v: V;
   csp: TCSP;
+  isLocalSearch: boolean;
 };
 export type RuleFn<V extends string, TCSP extends CSP<V>> = (a: RuleCtx<V, TCSP>) => {
   valid: boolean;
@@ -26,10 +29,9 @@ export const logFailedRule =
   (a) => {
     const msg = msgFn(a);
     a.csp.state.currentRule = msg;
-    a.csp.refreshLog();
+    // a.csp.refreshLog();
     const res = fn(a);
     if (active && !res.valid) {
-      // a.csp.printScope.logAbove(msgFn(a));
       a.csp.incDebugCount(msg);
     }
     return res;
@@ -62,6 +64,7 @@ export abstract class CSP<V extends string = string> {
   spacer = " ";
   delay = 0;
   printEvery = 200;
+  isLocalSearch = false;
   state = {
     step: 0,
     pointer: -1,
@@ -69,6 +72,7 @@ export abstract class CSP<V extends string = string> {
     startTime: new Date(),
     currentRule: "",
     rulei: 0,
+    conflictCount: 0,
   };
   //? I hate that I can't set this as `Record<V, number>` type.
   reverseValueMap: Record<string, number> = {};
@@ -94,38 +98,6 @@ export abstract class CSP<V extends string = string> {
       const p = r * a.colLength + c;
       return p % a.values.length;
     }) as number[][];
-    this.printScope.setText([
-      () => `Time spent: ${printTimeDifference(this.state.startTime, new Date())}`,
-      () => `Iteration: ${this.state.step}`,
-      () => `Furthest: [${this.getRC(this.state.furthest)}]`,
-      ...IF(IS_DEBUG, [() => `Current Rule: ${this.state.currentRule}`], []),
-      () => {
-        const max = Math.max(...Object.values(this.countDebug)).toString().length;
-        return Object.entries(this.countDebug)
-          .map(([key, value]) => `[${value.toString().padStart(max)}] ${key}`)
-          .join("\n");
-      },
-      () =>
-        this.c() +
-        this.spacer +
-        ranged(a.colLength)
-          .map((v) => this.c(String(v)))
-          .join(this.spacer),
-      () =>
-        this.arrV
-          .map(
-            (colVs, row) =>
-              this.c(String(row)) +
-              this.spacer +
-              colVs
-                .map((colV) => colV ?? this.emptyText)
-                .map((v) => this.c(v))
-                .join(this.spacer),
-          )
-          .join("\n"),
-      `=`.repeat((this.c("").length + this.spacer.length) * (a.colLength + 1)),
-      `.`,
-    ]);
   }
 
   c(v = "") {
@@ -142,6 +114,21 @@ export abstract class CSP<V extends string = string> {
   updateArr(r: number, c: number, vi: number | null) {
     this.arr[r][c] = vi;
     this.arrV[r][c] = this.getV(vi);
+  }
+
+  updateArrV(r: number, c: number, v: V | null) {
+    this.arr[r][c] = this.getI(v);
+    this.arrV[r][c] = v;
+  }
+
+  at(pointer: number): number | null {
+    const [r, c] = this.getRC(pointer);
+    return this.arr[r][c];
+  }
+
+  fVat(pointer: number): number | null {
+    const [r, c] = this.getRC(pointer);
+    return this.getI(this.a.fixedValues?.[r][c] ?? null);
   }
 
   getV(i: number | null): V | null {
@@ -173,6 +160,19 @@ export abstract class CSP<V extends string = string> {
     return [r, c] as const;
   }
 
+  ruleCtx({r, c, v}: {r: number; c: number; v: V}): RuleCtx<V, any> {
+    return {
+      arr: this.arrV,
+      r,
+      rowL: this.a.rowLength,
+      c,
+      colL: this.a.colLength,
+      v,
+      csp: this,
+      isLocalSearch: this.isLocalSearch,
+    };
+  }
+
   step() {
     const valueLength = this.a.values.length;
     ++this.state.step;
@@ -189,15 +189,8 @@ export abstract class CSP<V extends string = string> {
     this.updateArr(r, c, nexti);
     for (const [rulei, ruleFn] of this.rules.entries()) {
       this.state.rulei = rulei;
-      const {valid, jump, jumpIfEnds} = ruleFn({
-        arr: this.arrV,
-        r,
-        rowL: this.a.rowLength,
-        c,
-        colL: this.a.colLength,
-        v: this.getV_(nexti),
-        csp: this,
-      });
+      const v = this.getV_(nexti);
+      const {valid, jump, jumpIfEnds} = ruleFn(this.ruleCtx({r, c, v}));
       if (!valid) {
         if (jump) {
           const [rnext, cnext] = jump;
@@ -264,13 +257,49 @@ export abstract class CSP<V extends string = string> {
     }
   }
 
-  run() {
+  private initRun() {
+    this.state.startTime = new Date();
+  }
+
+  runBruteForce() {
+    this.initRun();
+    this.printScope.setText([
+      () => `Time spent: ${printTimeDifference(this.state.startTime, new Date())}`,
+      () => `Iteration: ${this.state.step}`,
+      () => `Furthest: [${this.getRC(this.state.furthest)}]`,
+      ...IF(IS_DEBUG, [() => `Current Rule: ${this.state.currentRule}`], []),
+      () => {
+        const max = Math.max(...Object.values(this.countDebug)).toString().length;
+        return Object.entries(this.countDebug)
+          .map(([key, value]) => `[${value.toString().padStart(max)}] ${key}`)
+          .join("\n");
+      },
+      () =>
+        this.c() +
+        this.spacer +
+        ranged(this.a.colLength)
+          .map((v) => this.c(String(v)))
+          .join(this.spacer),
+      () =>
+        this.arrV
+          .map(
+            (colVs, row) =>
+              this.c(String(row)) +
+              this.spacer +
+              colVs
+                .map((colV) => colV ?? this.emptyText)
+                .map((v) => this.c(v))
+                .join(this.spacer),
+          )
+          .join("\n"),
+      `=`.repeat((this.c("").length + this.spacer.length) * (this.a.colLength + 1)),
+      `.`,
+    ]);
     const boardSize = this.getBoardSize();
 
     let valid = false;
     try {
       this.forward();
-      this.state.startTime = new Date();
       while (true) {
         this.refreshLog();
         // await delay(this.delay);
@@ -298,5 +327,137 @@ export abstract class CSP<V extends string = string> {
       this.refreshLog(true);
     }
     return valid;
+  }
+
+  countConflict(pointer: number): number {
+    const [r, c] = this.getRC(pointer);
+    const v = this.arrV[r][c];
+    if (v === null) {
+      return Infinity;
+    }
+    let res = 0;
+    for (const [rulei, ruleFn] of this.rules.entries()) {
+      this.state.rulei = rulei;
+      const {valid} = ruleFn(this.ruleCtx({r, c, v}));
+      if (!valid) {
+        ++res;
+      }
+    }
+    return res;
+  }
+
+  findConflictCell(): number | undefined {
+    const boardSize = this.getBoardSize();
+    const conflictMap = ranged(boardSize);
+    for (const pointer of range(boardSize)) {
+      const fV = this.fVat(pointer);
+      if (fV !== null) {
+        conflictMap[pointer] = 0;
+      } else {
+        conflictMap[pointer] = this.countConflict(pointer);
+      }
+    }
+    const filtered = [...conflictMap.entries().filter(([_, v]) => v > 0)];
+    const sampled = filtered[randomIntegerBetween(0, filtered.length - 1)][0];
+    // const sampled = filtered.reduce((prev, curr) => {
+    //   if (!prev || curr[1] < prev[1]) {
+    //     return curr;
+    //   }
+    //   return prev;
+    // });
+    if (sampled === undefined) {
+      return sampled;
+    }
+    return sampled;
+  }
+
+  findMinConflictDomain(pointer: number): number {
+    const [r, c] = this.getRC(pointer);
+    const oldVi = this.at(pointer);
+    let minConflict = this.countConflict(pointer);
+    let chosenVi = oldVi ?? 0;
+    for (const vi of range(this.a.values.length)) {
+      if (vi === oldVi) {
+        continue;
+      }
+      this.updateArr(r, c, vi);
+      const newConflict = this.countConflict(vi);
+      if (newConflict <= minConflict) {
+        minConflict = newConflict;
+        chosenVi = vi;
+      }
+    }
+    this.updateArr(r, c, oldVi);
+    return chosenVi;
+  }
+
+  runLocalSearch(maxIteration: number) {
+    this.initRun();
+    this.isLocalSearch = true;
+    let iteration = 0;
+    this.printScope.setText([
+      () => `Time spent: ${printTimeDifference(this.state.startTime, new Date())}`,
+      () => `Iteration: ${iteration}`,
+      ...IF(IS_DEBUG, [() => `Current Rule: ${this.state.currentRule}`], []),
+      () => {
+        const max = Math.max(...Object.values(this.countDebug)).toString().length;
+        return Object.entries(this.countDebug)
+          .map(([key, value]) => `[${value.toString().padStart(max)}] ${key}`)
+          .join("\n");
+      },
+      () =>
+        this.c() +
+        this.spacer +
+        ranged(this.a.colLength)
+          .map((v) => this.c(String(v)))
+          .join(this.spacer),
+      () =>
+        this.arrV
+          .map(
+            (colVs, row) =>
+              this.c(String(row)) +
+              this.spacer +
+              colVs
+                .map((colV) => colV ?? this.emptyText)
+                .map((v) => this.c(v))
+                .join(this.spacer),
+          )
+          .join("\n"),
+      `=`.repeat((this.c().length + this.spacer.length) * (this.a.colLength + 1)),
+      `.`,
+    ]);
+    const boardSize = this.getBoardSize();
+    for (const i of range(boardSize)) {
+      const [r, c] = this.getRC(i);
+      const fixedV = this.a.fixedValues?.[r][c];
+      if (fixedV) {
+        this.updateArrV(r, c, fixedV);
+        continue;
+      }
+      const vi =
+        this.startingValueIndices?.[r][c] ?? randomIntegerBetween(0, this.a.values.length - 1);
+      this.updateArr(r, c, vi);
+    }
+
+    let valid = false;
+    try {
+      while (++iteration <= maxIteration) {
+        ++this.state.step;
+        this.refreshLog();
+        const pointer = this.findConflictCell();
+        if (pointer === undefined) {
+          valid = true;
+          break;
+        }
+        const chosenVi = this.findMinConflictDomain(pointer);
+        const [r, c] = this.getRC(pointer);
+        this.updateArr(r, c, chosenVi);
+      }
+    } catch (error) {
+      throw error;
+    } finally {
+      this.refreshLog(true);
+    }
+    return {found: valid, iteration};
   }
 }
