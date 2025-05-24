@@ -1,6 +1,12 @@
 import { staticText } from "@david/console-static-text";
 import { delay } from "@std/async/delay";
-import { initBoard, printTimeDifference } from "./utils.ts";
+import {
+  IF,
+  initBoard,
+  IS_DEBUG,
+  printTimeDifference,
+  ranged,
+} from "./utils.ts";
 
 export type RuleCtx<V extends string, TCSP extends CSP<V>> = {
   arr: (V | null)[][];
@@ -13,7 +19,7 @@ export type RuleCtx<V extends string, TCSP extends CSP<V>> = {
 };
 export type RuleFn<V extends string, TCSP extends CSP<V>> = (
   a: RuleCtx<V, TCSP>
-) => { valid: boolean; jump?: [number, number] };
+) => { valid: boolean; jump?: [number, number]; jumpIfEnds?: [number, number] };
 
 export const logFailedRule =
   <V extends string, TCSP extends CSP<V>>(
@@ -22,10 +28,13 @@ export const logFailedRule =
     fn: RuleFn<V, TCSP>
   ): RuleFn<V, TCSP> =>
   (a) => {
+    const msg = msgFn(a);
+    a.csp.state.currentRule = msg;
+    a.csp.refreshLog();
     const res = fn(a);
     if (active && !res.valid) {
       // a.csp.printScope.logAbove(msgFn(a));
-      a.csp.incDebugCount(msgFn(a));
+      a.csp.incDebugCount(msg);
     }
     return res;
   };
@@ -64,12 +73,13 @@ export abstract class CSP<V extends string = string> {
     pointer: -1,
     furthest: 0,
     startTime: new Date(),
+    currentRule: "",
+    rulei: 0,
   };
   //? I hate that I can't set this as `Record<V, number>` type.
-  reverseValueMap: Record<string, number> = {
-    test: 1,
-  };
+  reverseValueMap: Record<string, number> = {};
   countDebug: Record<string, number> = {};
+  startingValueIndices: number[][] = [];
 
   constructor(
     public a: {
@@ -90,22 +100,48 @@ export abstract class CSP<V extends string = string> {
       a.colLength,
       (r, c) => a.fixedValues?.[r][c] ?? null
     );
+    this.startingValueIndices = initBoard(a.rowLength, a.colLength, (r, c) => {
+      const p = r * a.colLength + c;
+      return p % a.values.length;
+    }) as number[][];
     this.printScope.setText([
       () =>
         `Time spent: ${printTimeDifference(this.state.startTime, new Date())}`,
       () => `Iteration: ${this.state.step}`,
       () => `Furthest: [${this.getRC(this.state.furthest)}]`,
+      ...IF(IS_DEBUG, [() => `Current Rule: ${this.state.currentRule}`], []),
+      () => {
+        const max = Math.max(...Object.values(this.countDebug)).toString()
+          .length;
+        return Object.entries(this.countDebug)
+          .map(([key, value]) => `[${value.toString().padStart(max)}] ${key}`)
+          .join("\n");
+      },
       () =>
-        Object.entries(this.countDebug)
-          .map(([key, value]) => `[${value}] ${key}`)
-          .join("\n"),
+        this.c() +
+        this.spacer +
+        ranged(a.colLength)
+          .map((v) => this.c(String(v)))
+          .join(this.spacer),
       () =>
         this.arrV
-          .map((colVs) =>
-            colVs.map((colV) => colV ?? this.emptyText).join(this.spacer)
+          .map(
+            (colVs, row) =>
+              this.c(String(row)) +
+              this.spacer +
+              colVs
+                .map((colV) => colV ?? this.emptyText)
+                .map((v) => this.c(v))
+                .join(this.spacer)
           )
           .join("\n"),
+      `=`.repeat((this.c("").length + this.spacer.length) * (a.colLength + 1)),
+      `.`,
     ]);
+  }
+
+  c(v = "") {
+    return v.padStart(2);
   }
 
   incDebugCount(key: string) {
@@ -153,14 +189,19 @@ export abstract class CSP<V extends string = string> {
     const valueLength = this.a.values.length;
     ++this.state.step;
     const [r, c] = this.getRC();
+    const lastVariable = this.startingValueIndices[r][c];
     const curri = this.arr[r][c];
-    const nexti = curri == null ? 0 : curri + 1;
-    if (nexti === valueLength) {
+    const nexti = (curri == null ? lastVariable : curri + 1) % valueLength;
+    // if (nexti === valueLength) {
+    //   return "backward";
+    // }
+    if (curri !== null && nexti === lastVariable) {
       return "backward";
     }
     this.updateArr(r, c, nexti);
-    for (const ruleFn of this.rules) {
-      const { valid, jump } = ruleFn({
+    for (const [rulei, ruleFn] of this.rules.entries()) {
+      this.state.rulei = rulei;
+      const { valid, jump, jumpIfEnds } = ruleFn({
         arr: this.arrV,
         r,
         rowL: this.a.rowLength,
@@ -173,6 +214,13 @@ export abstract class CSP<V extends string = string> {
         if (jump) {
           const [rnext, cnext] = jump;
           this.backwardTo(rnext, cnext);
+        }
+        // TODO: This should only be true IF all possible values failed within this exact rule.
+        if (jumpIfEnds) {
+          const [rnext, cnext] = jumpIfEnds;
+          if ((nexti + 1) % valueLength === lastVariable) {
+            this.backwardTo(rnext, cnext);
+          }
         }
         return "fail";
       }
@@ -232,31 +280,35 @@ export abstract class CSP<V extends string = string> {
     const boardSize = this.getBoardSize();
 
     let valid = false;
-    this.forward();
-    this.state.startTime = new Date();
-    while (true) {
-      this.refreshLog();
-      // await delay(this.delay);
-      const result = this.step();
-      if (result === "forward") {
-        this.forward();
-        if (this.state.pointer === boardSize) {
-          valid = true;
-          break;
+    try {
+      this.forward();
+      this.state.startTime = new Date();
+      while (true) {
+        this.refreshLog();
+        // await delay(this.delay);
+        const result = this.step();
+        if (result === "forward") {
+          this.forward();
+          if (this.state.pointer === boardSize) {
+            valid = true;
+            break;
+          }
+          continue;
+        } else if (result === "backward") {
+          this.backward();
+          if (this.state.pointer === -1) {
+            break;
+          }
+          continue;
+        } else if (result === "fail") {
+          continue;
         }
-        continue;
-      } else if (result === "backward") {
-        this.backward();
-        if (this.state.pointer === -1) {
-          break;
-        }
-        continue;
-      } else if (result === "fail") {
-        continue;
       }
+    } catch (error) {
+      throw error;
+    } finally {
+      this.refreshLog(true);
     }
-    this.refreshLog(true);
-    console.log();
     return valid;
   }
 }

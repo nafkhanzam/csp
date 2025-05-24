@@ -1,12 +1,12 @@
-[19:30, 5/22/2025] Istri: DR. DYAS
+DR. DYAS
 Tiap selasa pagi
 Tiap kamis jumat malam  (JANGAN DI FULL ACC)
 Khusus untuk tgl :
 Tgl 1 libur
 Tgl 19-21 cuti
 Tgl 22 libur
-[19:31, 5/22/2025] Istri: DR. ARDHA
 
+DR. ARDHA
 1 Juni : libur
 2 Juni : Cuti 4
 6 Juni : Cuti 5
@@ -15,33 +15,43 @@ Tgl 22 libur
 10 Juni : Cuti 6 ( mendampingi outdoor learning anak)
 20-21 Juni : libur
 25 Juni : libur
-[19:31, 5/22/2025] Istri: DR. GHANI
+
+DR. GHANI
 11: CUTI 3
 12 - 13 = L L
 19 - 20 = L L
 26 - 27 = L L
 CUTI 4, 5, 6 TERSERAH TANGGAL BERAPA
 16-30 SELALU PAGI
-[19:36, 5/22/2025] Istri: DR. WINDA
+
+DR. WINDA
 malam : tiap jumat dan sabtu
 libur : 8, 9, 21
 cuti : 1,22, 27
 BANYAKIN JAGA SORE
-[19:36, 5/22/2025] Istri: DR. DESY ⬆️
-[19:40, 5/22/2025] Istri: DR. MAHARANI
+
+DR. DESY ⬆️
+// TODO
+
+DR. MAHARANI
 14: LIBUR
-[19:40, 5/22/2025] Istri: DR. HELVIANSYAH
+
+DR. HELVIANSYAH
 Tiap kamis S/M (pagi ke soetomo)
 13,14 L 15 C5 ( kemungkinan ujian tulis)
 20,21 L 22 C6 (kemungkinan wawancara)
-[19:40, 5/22/2025] Istri: DR. CITRA
+
+DR. CITRA
 21, 28 LIBUR
-[19:41, 5/22/2025] Istri: DR. FAHMI
+
+DR. FAHMI
 27.28.29 LIBUR
-[19:42, 5/22/2025] Istri: STANDAR JAM KERJA: 164,5
+
+STANDAR JAM KERJA: 164,5
 MIN: 162,5
 MAX: 165,5
-[19:43, 5/22/2025] Istri: SYARAT:
+
+SYARAT:
 1. TIAP SELESAI JAGA MALAM: WAJIB LIBUR
 2. SHIFT MALAM HARUS 3 ORANG
 3. SETIAP DOKTER DAPAT JATAH PAGI ATAU SORE DI RUANGAN (KODE Pr ATAU Sr)

@@ -20,3 +20,12 @@ export const printTimeDifference = (date1: Date, date2: Date) => {
 
   return `${hours} hours, ${minutes} minutes, ${seconds} seconds`;
 };
+
+export const IF = <A, B>(ifV: unknown, a: A, b: B): A | B => {
+  if (ifV) {
+    return a;
+  }
+  return b;
+};
+
+export const IS_DEBUG = Deno.env.get("DEBUG") === "1";

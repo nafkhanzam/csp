@@ -1,13 +1,13 @@
 import { IGDCSP, JagaV } from "./igd-schedule/igd-csp.ts";
-import { initBoard } from "./lib/utils.ts";
+import { initBoard, IS_DEBUG } from "./lib/utils.ts";
 
 const doctors: string[] = [
-  /* 0*/ "dr Fauqi Amalia",
-  /* 1*/ "dr. Desy Irviana Harahap",
-  /* 2*/ "dr. Rahmawati",
-  /* 3*/ "dr Dyas Alif  Fitriana",
-  // "dr Brianka Yudha Nurpradika",
-  /* 4*/ "dr Helviansyah El Farizqi",
+  /* 0*/ "dr. Desy Irviana Harahap",
+  /* 1*/ "dr. Rahmawati",
+  /* 2*/ "dr. Dyas Alif  Fitriana",
+  // "dr. Brianka Yudha Nurpradika",
+  /* 3*/ "dr. Helviansyah El Farizqi",
+  /* 4*/ "dr. Fauqi Amalia",
   /* 5*/ "dr. Muhammad Almy Firasghani",
   /* 6*/ "dr. Winda Cornelia Harini",
   /* 7*/ "dr. Wijanarko Permadi",
@@ -19,14 +19,19 @@ const doctors: string[] = [
   /*13*/ "dr. Amalia Citra Octavia",
 ];
 
-const fV: (JagaV | null)[][] = initBoard(doctors.length, 30);
-fV[0] = ["L", "P", "M", "M", "L", "L", "L", "P", "S", "S", "M", "M", "L", "L", "P", "P", "S", "M", "M", "L", "L", "P", "P", "S", "M", "M", "L", "P", "P", "L"];
+const days = 30; // Juni
+const doctorCount = doctors.length;
+const fV: (JagaV | null)[][] = initBoard(doctorCount, days);
+// prettier-ignore
+fV[4] = ["L", "P", "M", "M", "L", "L", "L", "P", "S", "S", "M", "M", "L", "L", "P", "P", "S", "M", "M", "L", "L", "P", "P", "S", "M", "M", "L", "P", "P", "L"];
 
 const csp = new IGDCSP({
-  days: 30, // Juni
-  doctorCount: doctors.length,
+  days,
+  doctorCount,
   weekOn1: 0, // Minggu
   fixedValues: fV,
 });
+
+csp.printEvery = IS_DEBUG ? 1 : 100_000;
 
 csp.run();
