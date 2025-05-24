@@ -7,7 +7,8 @@ export const jagaVs = [
   "P", // Pagi
   "S", // Sore
   "M", // Malam
-  "L", // Libur/Cuti
+  "L", // Libur
+  "C", // Cuti
 ] as const;
 export const jagaVss: string[] = [...jagaVs];
 export type JagaV = (typeof jagaVs)[number];
@@ -22,11 +23,12 @@ export const posisiVss: string[] = [...posisiVs];
 export const igdVs = [...jagaVs, ...posisiVs];
 export type IGDV = (typeof igdVs)[number];
 
-const mapToHour = ({arr, c, r, csp}: RuleCtx<JagaV, IGDCSP>, v: JagaV | null): number => {
+export const mapToHour = (v: JagaV | null): number => {
   // const week = (csp.igd.weekOn1 + c) % 7;
   switch (v) {
     case null:
       return 0;
+    case "C":
     case "P":
       return 7;
     case "S":
@@ -41,6 +43,16 @@ const mapToHour = ({arr, c, r, csp}: RuleCtx<JagaV, IGDCSP>, v: JagaV | null): n
 };
 
 export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
+  logFailedRule(
+    true,
+    () => `[CELL] Cuti only comes from fixedValues.`,
+    ({arr, c, colL, r, rowL, v, csp, isLocalSearch, pointer}) => {
+      if (v !== "C") {
+        return {valid: true};
+      }
+      return {valid: csp.fVatV(pointer) === "C"};
+    },
+  ),
   logFailedRule(
     true,
     () => `[ROW] L after M.`,
@@ -70,46 +82,46 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
       };
     },
   ),
-  logFailedRule(
-    true,
-    //? I assume
-    () => `[ROW] P & S & L cannot be 5 in a row.`,
-    ({arr, c, colL, r, rowL, v, csp, isLocalSearch}) => {
-      // if (v !== "L") {
-      //   return {valid: true};
-      // }
-      if (v !== "P" && v !== "S" && v !== "L") {
-        return {valid: true};
-      }
-      const inARow = 5;
-      if (c < inARow - 1 && !isLocalSearch) {
-        return {valid: true};
-      }
-      return {
-        valid: arr[r].slice(c - inARow + 1, c).some((vc) => vc !== v),
-      };
-    },
-  ),
-  logFailedRule(
-    true,
-    //? I assume
-    () => `[ROW] P & S & L & M cannot be more than 10 in total.`,
-    ({arr, c, colL, r, rowL, v, csp, isLocalSearch}) => {
-      // if (v !== "L") {
-      //   return {valid: true};
-      // }
-      if (v !== "P" && v !== "S" && v !== "L") {
-        return {valid: true};
-      }
-      const maxTotal = 10;
-      if (c < maxTotal - 1 && !isLocalSearch) {
-        return {valid: true};
-      }
-      return {
-        valid: arr[r].slice(0, isLocalSearch ? colL : c).filter((vc) => vc === v).length < maxTotal,
-      };
-    },
-  ),
+  // logFailedRule(
+  //   true,
+  //   //? I assume
+  //   () => `[ROW] P & S & L cannot be 5 in a row.`,
+  //   ({arr, c, colL, r, rowL, v, csp, isLocalSearch}) => {
+  //     // if (v !== "L") {
+  //     //   return {valid: true};
+  //     // }
+  //     if (v !== "P" && v !== "S" && v !== "L") {
+  //       return {valid: true};
+  //     }
+  //     const inARow = 5;
+  //     if (c < inARow - 1 && !isLocalSearch) {
+  //       return {valid: true};
+  //     }
+  //     return {
+  //       valid: arr[r].slice(c - inARow + 1, c).some((vc) => vc !== v),
+  //     };
+  //   },
+  // ),
+  // logFailedRule(
+  //   true,
+  //   //? I assume
+  //   () => `[ROW] P & S & L & M cannot be more than 10 in total.`,
+  //   ({arr, c, colL, r, rowL, v, csp, isLocalSearch}) => {
+  //     // if (v !== "L") {
+  //     //   return {valid: true};
+  //     // }
+  //     if (v !== "P" && v !== "S" && v !== "L") {
+  //       return {valid: true};
+  //     }
+  //     const maxTotal = 10;
+  //     if (c < maxTotal - 1 && !isLocalSearch) {
+  //       return {valid: true};
+  //     }
+  //     return {
+  //       valid: arr[r].slice(0, isLocalSearch ? colL : c).filter((vc) => vc === v).length < maxTotal,
+  //     };
+  //   },
+  // ),
   logFailedRule(
     true,
     () => `[COL] M has to be 3 or smaller so far.`,
@@ -141,9 +153,9 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
   logFailedRule(
     true,
     //? I assume
-    () => `[COL] P have to be 4 or smaller so far.`,
+    () => `[COL] P have to be 3 or smaller so far.`,
     ({arr, c, colL, r, rowL, v, csp, isLocalSearch}) => {
-      const expectedTotal = 4;
+      const expectedTotal = 3;
       if (r >= expectedTotal - 1 || isLocalSearch) {
         const total = ranged(rowL)
           .map((i) => arr[i][c])
@@ -155,9 +167,9 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
   ),
   logFailedRule(
     true,
-    () => `[COL] P have to be 3 or more overall.`,
+    () => `[COL] P have to be 2 or more overall.`,
     ({arr, c, colL, r, rowL, v, csp, isLocalSearch}) => {
-      const expectedTotal = 3;
+      const expectedTotal = 2;
       if (r === rowL - 1 || isLocalSearch) {
         const total = ranged(rowL)
           .map((i) => arr[i][c])
@@ -170,9 +182,9 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
   logFailedRule(
     true,
     //? I assume
-    () => `[COL] S have to be 4 or smaller so far.`,
+    () => `[COL] S have to be 3 or smaller so far.`,
     ({arr, c, colL, r, rowL, v, csp, isLocalSearch}) => {
-      const expectedTotal = 4;
+      const expectedTotal = 3;
       if (r >= expectedTotal - 1 || isLocalSearch) {
         const total = ranged(rowL)
           .map((i) => arr[i][c])
@@ -203,7 +215,7 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
       const MIN_HOURS = 162.5;
       const MAX_HOURS = 165.5;
       const {arr, c, colL, r, rowL, v, csp, isLocalSearch} = a;
-      const totalHours = arr[r].reduce((prev, curr) => prev + mapToHour(a, curr!), 0);
+      const totalHours = arr[r].reduce((prev, curr) => prev + mapToHour(curr!), 0);
       if (a.isLocalSearch || (c === a.colL - 1 && totalHours < MIN_HOURS)) {
         // const thisHour = mapToHour(a, v);
         // let nextc = c - 1;

@@ -6,6 +6,7 @@ import range from "@korkje/range";
 
 export type RuleCtx<V extends string, TCSP extends CSP<V>> = {
   arr: (V | null)[][];
+  pointer: number;
   r: number;
   rowL: number;
   c: number;
@@ -73,6 +74,7 @@ export abstract class CSP<V extends string = string> {
     currentRule: "",
     rulei: 0,
     conflictCount: 0,
+    signalExit: false,
   };
   //? I hate that I can't set this as `Record<V, number>` type.
   reverseValueMap: Record<string, number> = {};
@@ -95,9 +97,13 @@ export abstract class CSP<V extends string = string> {
     );
     this.arrV = initBoard(a.rowLength, a.colLength, (r, c) => a.fixedValues?.[r][c] ?? null);
     this.startingValueIndices = initBoard(a.rowLength, a.colLength, (r, c) => {
-      const p = r * a.colLength + c;
+      const p = this.toPointer(r, c);
       return p % a.values.length;
     }) as number[][];
+  }
+
+  toPointer(r: number, c: number) {
+    return r * this.a.colLength + c;
   }
 
   c(v = "") {
@@ -127,8 +133,12 @@ export abstract class CSP<V extends string = string> {
   }
 
   fVat(pointer: number): number | null {
+    return this.getI(this.fVatV(pointer));
+  }
+
+  fVatV(pointer: number): V | null {
     const [r, c] = this.getRC(pointer);
-    return this.getI(this.a.fixedValues?.[r][c] ?? null);
+    return this.a.fixedValues?.[r][c] ?? null;
   }
 
   getV(i: number | null): V | null {
@@ -163,6 +173,7 @@ export abstract class CSP<V extends string = string> {
   ruleCtx({r, c, v}: {r: number; c: number; v: V}): RuleCtx<V, any> {
     return {
       arr: this.arrV,
+      pointer: this.toPointer(r, c),
       r,
       rowL: this.a.rowLength,
       c,
@@ -300,7 +311,7 @@ export abstract class CSP<V extends string = string> {
     let valid = false;
     try {
       this.forward();
-      while (true) {
+      while (true && !this.state.signalExit) {
         this.refreshLog();
         // await delay(this.delay);
         const result = this.step();
@@ -382,7 +393,7 @@ export abstract class CSP<V extends string = string> {
       }
       this.updateArr(r, c, vi);
       const newConflict = this.countConflict(vi);
-      if (newConflict <= minConflict) {
+      if (newConflict < minConflict) {
         minConflict = newConflict;
         chosenVi = vi;
       }
@@ -441,7 +452,7 @@ export abstract class CSP<V extends string = string> {
 
     let valid = false;
     try {
-      while (++iteration <= maxIteration) {
+      while (++iteration <= maxIteration && !this.state.signalExit) {
         ++this.state.step;
         this.refreshLog();
         const pointer = this.findConflictCell();
