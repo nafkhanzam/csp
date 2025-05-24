@@ -1,6 +1,6 @@
 import { staticText } from "@david/console-static-text";
 import { delay } from "@std/async/delay";
-import { initBoard } from "./utils.ts";
+import { initBoard, printTimeDifference } from "./utils.ts";
 
 export type RuleCtx<V extends string, TCSP extends CSP<V>> = {
   arr: (V | null)[][];
@@ -23,8 +23,9 @@ export const logFailedRule =
   ): RuleFn<V, TCSP> =>
   (a) => {
     const res = fn(a);
-    if (active && !res) {
-      a.csp.printScope.logAbove(msgFn(a));
+    if (active && !res.valid) {
+      // a.csp.printScope.logAbove(msgFn(a));
+      a.csp.incDebugCount(msgFn(a));
     }
     return res;
   };
@@ -57,15 +58,18 @@ export abstract class CSP<V extends string = string> {
   emptyText = ".";
   spacer = " ";
   delay = 0;
-  printEvery = 100;
+  printEvery = 200;
   state = {
     step: 0,
-    pointer: 0,
+    pointer: -1,
+    furthest: 0,
+    startTime: new Date(),
   };
   //? I hate that I can't set this as `Record<V, number>` type.
   reverseValueMap: Record<string, number> = {
     test: 1,
   };
+  countDebug: Record<string, number> = {};
 
   constructor(
     public a: {
@@ -87,7 +91,14 @@ export abstract class CSP<V extends string = string> {
       (r, c) => a.fixedValues?.[r][c] ?? null
     );
     this.printScope.setText([
+      () =>
+        `Time spent: ${printTimeDifference(this.state.startTime, new Date())}`,
       () => `Iteration: ${this.state.step}`,
+      () => `Furthest: [${this.getRC(this.state.furthest)}]`,
+      () =>
+        Object.entries(this.countDebug)
+          .map(([key, value]) => `[${value}] ${key}`)
+          .join("\n"),
       () =>
         this.arrV
           .map((colVs) =>
@@ -95,6 +106,13 @@ export abstract class CSP<V extends string = string> {
           )
           .join("\n"),
     ]);
+  }
+
+  incDebugCount(key: string) {
+    if (!this.countDebug[key]) {
+      this.countDebug[key] = 0;
+    }
+    ++this.countDebug[key];
   }
 
   updateArr(r: number, c: number, vi: number | null) {
@@ -124,9 +142,9 @@ export abstract class CSP<V extends string = string> {
     }
   }
 
-  getRC() {
-    const r = Math.floor(this.state.pointer / this.a.colLength);
-    const c = this.state.pointer % this.a.colLength;
+  getRC(pointer = this.state.pointer) {
+    const r = Math.floor(pointer / this.a.colLength);
+    const c = pointer % this.a.colLength;
 
     return [r, c] as const;
   }
@@ -186,6 +204,7 @@ export abstract class CSP<V extends string = string> {
         break;
       }
     }
+    this.state.furthest = Math.max(this.state.furthest, this.state.pointer);
   }
 
   backward() {
@@ -209,13 +228,15 @@ export abstract class CSP<V extends string = string> {
     }
   }
 
-  async run() {
+  run() {
     const boardSize = this.getBoardSize();
 
     let valid = false;
+    this.forward();
+    this.state.startTime = new Date();
     while (true) {
       this.refreshLog();
-      await delay(this.delay);
+      // await delay(this.delay);
       const result = this.step();
       if (result === "forward") {
         this.forward();

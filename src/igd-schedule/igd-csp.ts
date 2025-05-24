@@ -45,8 +45,8 @@ const mapToHour = (
 
 export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
   logFailedRule(
-    false,
-    () => `Libur setelah M.`,
+    true,
+    () => `L after M.`,
     ({ arr, c, r, v }) => {
       if (c === 0) {
         return { valid: true };
@@ -58,7 +58,7 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
     }
   ),
   logFailedRule(
-    false,
+    true,
     () => `M cannot be 3 in a row.`,
     ({ arr, c, r, v }) => {
       if (v !== "M") {
@@ -74,10 +74,11 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
     }
   ),
   logFailedRule(
-    false,
-    () => `P & S cannot be 3 in a row.`,
+    true,
+    //? I assume
+    () => `P & S & L cannot be 3 in a row.`,
     ({ arr, c, r, v }) => {
-      if (v !== "P" && v !== "S") {
+      if (v !== "P" && v !== "S" && v !== "L") {
         return { valid: true };
       }
       const inARow = 3;
@@ -90,7 +91,7 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
     }
   ),
   logFailedRule(
-    false,
+    true,
     () => `M has to be 3 or smaller so far.`,
     ({ arr, c, colL, r, rowL, v, csp }) => {
       const expectedTotal = 3;
@@ -104,7 +105,7 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
     }
   ),
   logFailedRule(
-    false,
+    true,
     () => `M has to be 3 overall.`,
     ({ arr, c, colL, r, rowL, v, csp }) => {
       const expectedTotal = 3;
@@ -118,8 +119,9 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
     }
   ),
   logFailedRule(
-    false,
-    () => `P & S has to be 4 or smaller so far.`,
+    true,
+    //? I assume
+    () => `P & S have to be 4 or smaller so far.`,
     ({ arr, c, colL, r, rowL, v, csp }) => {
       const expectedTotal = 4;
       if (r >= expectedTotal - 1) {
@@ -132,8 +134,8 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
     }
   ),
   logFailedRule(
-    false,
-    () => `P & S has to be 3 or more overall.`,
+    true,
+    () => `P & S have to be 3 or more overall.`,
     ({ arr, c, colL, r, rowL, v, csp }) => {
       const expectedTotal = 3;
       if (r === rowL - 1) {
@@ -146,7 +148,7 @@ export const defaultRules: RuleFn<JagaV, IGDCSP>[] = [
     }
   ),
   logFailedRule(
-    false,
+    true,
     () => `Total jam jaga harus antara 162.5 sampai 165.5 jam.`,
     (a) => {
       const MIN_HOURS = 162.5;

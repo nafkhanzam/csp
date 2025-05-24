@@ -2,12 +2,12 @@ import { IGDCSP, JagaV } from "./igd-schedule/igd-csp.ts";
 import { initBoard } from "./lib/utils.ts";
 
 const doctors: string[] = [
-  /* 0*/ "dr. Desy Irviana Harahap",
-  /* 1*/ "dr. Rahmawati",
-  /* 2*/ "dr Dyas Alif  Fitriana",
+  /* 0*/ "dr Fauqi Amalia",
+  /* 1*/ "dr. Desy Irviana Harahap",
+  /* 2*/ "dr. Rahmawati",
+  /* 3*/ "dr Dyas Alif  Fitriana",
   // "dr Brianka Yudha Nurpradika",
-  /* 3*/ "dr Helviansyah El Farizqi",
-  /* 4*/ "dr Fauqi Amalia",
+  /* 4*/ "dr Helviansyah El Farizqi",
   /* 5*/ "dr. Muhammad Almy Firasghani",
   /* 6*/ "dr. Winda Cornelia Harini",
   /* 7*/ "dr. Wijanarko Permadi",
@@ -20,7 +20,7 @@ const doctors: string[] = [
 ];
 
 const fV: (JagaV | null)[][] = initBoard(doctors.length, 30);
-fV[4] = ["L", "P", "M", "M", "L", "L", "L", "P", "S", "S", "M", "M", "L", "L", "P", "P", "S", "M", "M", "L", "L", "P", "P", "S", "M", "M", "L", "L", "L", "L"];
+fV[0] = ["L", "P", "M", "M", "L", "L", "L", "P", "S", "S", "M", "M", "L", "L", "P", "P", "S", "M", "M", "L", "L", "P", "P", "S", "M", "M", "L", "P", "P", "L"];
 
 const csp = new IGDCSP({
   days: 30, // Juni
@@ -29,4 +29,4 @@ const csp = new IGDCSP({
   fixedValues: fV,
 });
 
-await csp.run();
+csp.run();

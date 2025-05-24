@@ -10,3 +10,13 @@ export const initBoard = <V>(
   [...range(rowLength)].map((_, r) =>
     [...range(colLength)].map((_, c) => defaultFn?.(r, c) ?? null)
   );
+
+export const printTimeDifference = (date1: Date, date2: Date) => {
+  const diffInMs = Math.abs(date1.getTime() - date2.getTime());
+
+  const hours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffInMs % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diffInMs % (1000 * 60)) / 1000);
+
+  return `${hours} hours, ${minutes} minutes, ${seconds} seconds`;
+};
