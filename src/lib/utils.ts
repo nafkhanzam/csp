@@ -1,14 +1,14 @@
-import range, { RangeParams } from "@korkje/range";
+import range, {RangeParams} from "@korkje/range";
 
 export const ranged = (...params: RangeParams) => [...range(...params)];
 
 export const initBoard = <V>(
   rowLength: number,
   colLength: number,
-  defaultFn?: (r: number, c: number) => V | null
+  defaultFn?: (r: number, c: number) => V | null,
 ): (V | null)[][] =>
   [...range(rowLength)].map((_, r) =>
-    [...range(colLength)].map((_, c) => defaultFn?.(r, c) ?? null)
+    [...range(colLength)].map((_, c) => defaultFn?.(r, c) ?? null),
   );
 
 export const printTimeDifference = (date1: Date, date2: Date) => {

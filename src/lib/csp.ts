@@ -1,12 +1,6 @@
-import { staticText } from "@david/console-static-text";
-import { delay } from "@std/async/delay";
-import {
-  IF,
-  initBoard,
-  IS_DEBUG,
-  printTimeDifference,
-  ranged,
-} from "./utils.ts";
+import {staticText} from "@david/console-static-text";
+import {delay} from "@std/async/delay";
+import {IF, initBoard, IS_DEBUG, printTimeDifference, ranged} from "./utils.ts";
 
 export type RuleCtx<V extends string, TCSP extends CSP<V>> = {
   arr: (V | null)[][];
@@ -17,15 +11,17 @@ export type RuleCtx<V extends string, TCSP extends CSP<V>> = {
   v: V;
   csp: TCSP;
 };
-export type RuleFn<V extends string, TCSP extends CSP<V>> = (
-  a: RuleCtx<V, TCSP>
-) => { valid: boolean; jump?: [number, number]; jumpIfEnds?: [number, number] };
+export type RuleFn<V extends string, TCSP extends CSP<V>> = (a: RuleCtx<V, TCSP>) => {
+  valid: boolean;
+  jump?: [number, number];
+  jumpIfEnds?: [number, number];
+};
 
 export const logFailedRule =
   <V extends string, TCSP extends CSP<V>>(
     active: boolean,
     msgFn: (a: RuleCtx<V, TCSP>) => string,
-    fn: RuleFn<V, TCSP>
+    fn: RuleFn<V, TCSP>,
   ): RuleFn<V, TCSP> =>
   (a) => {
     const msg = msgFn(a);
@@ -40,14 +36,12 @@ export const logFailedRule =
   };
 
 export const onRowEnd =
-  <V extends string, TCSP extends CSP<V>>(
-    fn: RuleFn<V, TCSP>
-  ): RuleFn<V, TCSP> =>
+  <V extends string, TCSP extends CSP<V>>(fn: RuleFn<V, TCSP>): RuleFn<V, TCSP> =>
   (a) => {
     if (a.c === a.csp.a.colLength - 1) {
       return fn(a);
     }
-    return { valid: true };
+    return {valid: true};
   };
 
 // export type CSPAction<V> = {
@@ -87,32 +81,26 @@ export abstract class CSP<V extends string = string> {
       colLength: number;
       values: V[];
       fixedValues?: (V | null)[][];
-    }
+    },
   ) {
     a.values.forEach((value, key) => {
       this.reverseValueMap[value] = key;
     });
     this.arr = initBoard(a.rowLength, a.colLength, (r, c) =>
-      this.getI(a.fixedValues?.[r][c] ?? null)
+      this.getI(a.fixedValues?.[r][c] ?? null),
     );
-    this.arrV = initBoard(
-      a.rowLength,
-      a.colLength,
-      (r, c) => a.fixedValues?.[r][c] ?? null
-    );
+    this.arrV = initBoard(a.rowLength, a.colLength, (r, c) => a.fixedValues?.[r][c] ?? null);
     this.startingValueIndices = initBoard(a.rowLength, a.colLength, (r, c) => {
       const p = r * a.colLength + c;
       return p % a.values.length;
     }) as number[][];
     this.printScope.setText([
-      () =>
-        `Time spent: ${printTimeDifference(this.state.startTime, new Date())}`,
+      () => `Time spent: ${printTimeDifference(this.state.startTime, new Date())}`,
       () => `Iteration: ${this.state.step}`,
       () => `Furthest: [${this.getRC(this.state.furthest)}]`,
       ...IF(IS_DEBUG, [() => `Current Rule: ${this.state.currentRule}`], []),
       () => {
-        const max = Math.max(...Object.values(this.countDebug)).toString()
-          .length;
+        const max = Math.max(...Object.values(this.countDebug)).toString().length;
         return Object.entries(this.countDebug)
           .map(([key, value]) => `[${value.toString().padStart(max)}] ${key}`)
           .join("\n");
@@ -132,7 +120,7 @@ export abstract class CSP<V extends string = string> {
               colVs
                 .map((colV) => colV ?? this.emptyText)
                 .map((v) => this.c(v))
-                .join(this.spacer)
+                .join(this.spacer),
           )
           .join("\n"),
       `=`.repeat((this.c("").length + this.spacer.length) * (a.colLength + 1)),
@@ -201,7 +189,7 @@ export abstract class CSP<V extends string = string> {
     this.updateArr(r, c, nexti);
     for (const [rulei, ruleFn] of this.rules.entries()) {
       this.state.rulei = rulei;
-      const { valid, jump, jumpIfEnds } = ruleFn({
+      const {valid, jump, jumpIfEnds} = ruleFn({
         arr: this.arrV,
         r,
         rowL: this.a.rowLength,
